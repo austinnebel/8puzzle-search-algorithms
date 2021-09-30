@@ -1,35 +1,13 @@
 import sys
-from enum import Enum
-
 import numpy as np
 
-
-class Action:
-    L = 0
-    R = 1
-    U = 2
-    D = 3
-
-class Puzzle:
-
-    def __init__(self, init_state):
-        """
-        Initializes a 3x3 puzzle board.
-
-        Args:
-            init_state (list[string]): String list of initial board state, from top-left to bottom-right.
-        """
-        self.board = np.empty((3,3), dtype=str)
-        self.board[0] = init_state[:3]
-        self.board[1] = init_state[3:6]
-        self.board[2] = init_state[6:]
-        print(f"Initialized board:\n{self.board}")
-
+from puzzle import Puzzle
 
 class Algorithms:
 
-    def BFS(self):
-        pass
+    @staticmethod
+    def BFS(puzzle):
+        print(bfs.search(puzzle))
 
     def IDS(self):
         pass
@@ -43,12 +21,6 @@ class Algorithms:
     def h3(self):
         pass
 
-def parse_puzzle(pfile):
-    f = open(pfile, "r")
-    plist = []
-    for s in f.readlines():
-        plist.extend(s.split())
-    return plist
 
 def main():
 
@@ -68,11 +40,10 @@ def main():
         print(f"Algorithm '{alg_name}' is not valid. Available algorithms: {available_algs}")
         exit(2)
 
-    s = parse_puzzle(file)
-    print(f"Parsed puzzle from file: {s}")
+    board = Puzzle.initialize(file)
 
-    p = Puzzle(s)
-    alg(p)
+    alg(board)
 
 if __name__ == "__main__":
+    import algorithms.bfs as bfs
     main()
