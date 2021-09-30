@@ -1,9 +1,9 @@
 from collections import deque
 import numpy as np
 import time
-from puzzle import Puzzle, BoardNode
+from puzzle import BoardNode
 
-def search(board):
+def search(root_node : BoardNode):
     """[Figure 3.11]
     Note that this function can be implemented in a
     single line as below:
@@ -11,34 +11,33 @@ def search(board):
     """
     start = time.time()
 
-    node = BoardNode(board)
-    if Puzzle.solved(node.state):
+    node = root_node
+    if root_node.solved:
         return node
 
     # who is waiting for a visit
     visit_queue = deque([node])
-    # who has been visited already (unique only)
-    visited = set()
-
+    # who has been visited already
+    visited = deque([node])
     while visit_queue:
         node = visit_queue.popleft()
 
-        visited.add(node.tuple())
         children = node.expand()
+        visited.append(node)
         for child in children:
 
             if child == child.parent:
                 continue
 
-            if child.tuple() not in visited:
-                if not np.any([child == f for f in visit_queue]):
-
-                    if Puzzle.solved(child.state):
-                        print(len(visited))
-                        print(f"Found in {time.time()-start} seconds.")
+            if child not in visited and not child in visit_queue:
+                    if child.solved:
                         return child
 
                     visit_queue.append(child)
+
+            if time.time()-start > 15*60:
+                print(f"Timed out after 15 minutes.")
+                return None
 
     print(f"Not found after {time.time()-start} seconds.")
     return None

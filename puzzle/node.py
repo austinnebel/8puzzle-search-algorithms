@@ -1,5 +1,11 @@
+from enum import Enum
 import numpy as np
-from .puzzle import Puzzle, Action
+
+class Action(Enum):
+    L = 0
+    R = 1
+    U = 2
+    D = 3
 
 class BoardNode:
     """A node in a search tree. Contains a pointer to the parent (the node
@@ -11,7 +17,12 @@ class BoardNode:
     an explanation of how the f and h values are handled. You will not need to
     subclass this class."""
 
-    def __init__(self, state, parent = None, action = None, path_cost = 0):
+    EMPTY = "_"
+    GOAL = np.array([['1', '2', '3'],
+                     ['4', '5', '6'],
+                     ['7', '8', '_']])
+
+    def __init__(self, state : np.ndarray, parent = None, action = None, path_cost = 0):
         """
         Creates a Board node representing the result of action being applied to parent.
 
@@ -29,30 +40,144 @@ class BoardNode:
         if parent:
             self.depth = parent.depth + 1
 
+        self.inversions = self._get_inversions()
+        self.empty_pos = np.where(self.state == BoardNode.EMPTY)
+        self.path_cost = len(self.inversions)
+        self.solvable = True if len(self.inversions) % 2 == 0 else False
+        self.solved = np.array_equal(self.state, BoardNode.GOAL)
+        self.possible_moves = self._possible_moves()
+
+    def get(self, position : tuple):
+        return self.state[position][0]
+
+    def get_move_position(self, move: Action):
+        """
+        Returns the location of the board piece that will move during the specified action.
+
+        Args:
+            move (Action): The action that will cause a piece to be moved.
+
+        Raises:
+            Exception: If move is not valid.
+
+        Returns:
+            numpy.ndarray: Location of piece to be moved to the empty position in form [y, x].
+        """
+        empty_pos = self.empty_pos
+        move_pos = None
+        if move == Action.U:
+            move_pos = (empty_pos[0] + 1, empty_pos[1])
+        elif move == Action.D:
+            move_pos = (empty_pos[0] - 1, empty_pos[1])
+        elif move == Action.L:
+            move_pos = (empty_pos[0], empty_pos[1] + 1)
+        elif move == Action.R:
+            move_pos = (empty_pos[0], empty_pos[1] - 1)
+        else:
+            raise Exception(f"ERROR: Move {move} is not a valid move.")
+
+        return move_pos
+
+    def _get_inversions(self):
+            """
+            Returns the current amount of inversions.
+
+            An inversion is when a larger number is before a smaller number.
+            Ex. If the board state is [1, 2, 4, 8, _, 5, 6, 7, 3],
+                then the inversions are (4, 3), (8, 5), (8, 6), (8, 3), (7, 3)
+
+            If there are no inversions, the game is won. If there is an odd number
+
+            Returns:
+                list: List tuples, each an inversion.
+            """
+            inversions = []
+            fb = self.flatten()
+            for i in range(len(fb)):
+                first = fb[i]
+                for second in fb[i:]:
+                    if int(first) > int(second):
+                        inversions.append((first, second))
+            return inversions
+
+    def flatten(self):
+        """
+        Flattens the game board into a 1D array, removing the empty space.
+
+        Returns:
+            list: 1D array of flattened board.
+        """
+        flat = self.state.flatten()
+        return [i for i in flat if i != '_']
+
+    def move_result(self, move: Action):
+            """
+            Returns the board state after a move, but does not update the board.
+
+            Args:
+                move (Action): What direction to move a piece.
+
+            Returns:
+                numpy.ndarray: New board if piece was moved successfully.
+            """
+            if move not in self.possible_moves:
+                raise Exception(f"ERROR: Can not move {move}. Current position: {self.empty_pos}")
+
+            move_pos = self.get_move_position(move)
+            moving_piece = self.get(move_pos)
+
+            new_board = np.copy(self.state)
+            new_board[self.empty_pos] = moving_piece
+            new_board[move_pos] = BoardNode.EMPTY
+
+            return new_board
+
+    def _possible_moves(self):
+        """
+        Returns all possible moves based on the location of this node's empty slot.
+
+        Returns:
+            list: List of Action enums.
+        """
+        possible_moves = [Action.L, Action.R, Action.U, Action.D]
+
+        if self.empty_pos[0] == 0:
+            possible_moves.pop(possible_moves.index(Action.D))
+        if self.empty_pos[0] == 2:
+            possible_moves.pop(possible_moves.index(Action.U))
+        if self.empty_pos[1] == 0:
+            possible_moves.pop(possible_moves.index(Action.R))
+        if self.empty_pos[1] == 2:
+            possible_moves.pop(possible_moves.index(Action.L))
+
+        return possible_moves
+
     def expand(self):
         """
-        List the nodes reachable in one step from this node.
-
-        Gets a list of possible moves based on this node's board state,
-        and creates a child node with each of them.
+        Returns all possible child nodes based on this node's board state.
         """
-        return [self.child_node(self.state, action)
-                for action in Puzzle.possible_moves(self.state)
-                if action is not None]
+        children = []
+        for move in self.possible_moves:
+            move_pos = self.get_move_position(move)
+            moving_piece = self.get(move_pos)
 
-    def child_node(self, board, move : Action):
-        """
-        Creates a child node of this one based on the resulting board of the specified move.
+            # copy this node's state, and swap the empty position with the move position
+            new_board = np.copy(self.state)
+            new_board[self.empty_pos] = moving_piece
+            new_board[move_pos] = BoardNode.EMPTY
 
-        If a the specified move creates an impossible game state, returns none.
-        """
-        next_board_state = Puzzle.move_result(board, move)
-        move_cost = Puzzle.move_cost(board, move)
+            # create child node
+            new_node = BoardNode(new_board, parent = self, action = move)
 
-        if np.any([np.array_equal(next_board_state, s) for s in Puzzle.possible_states(board)]):
-            next_node = BoardNode(next_board_state, parent = self, action = move, path_cost = move_cost)
-            return next_node
-        return None
+            # if new board state isn't solvable, don't continue
+            if not new_node.solvable:
+                print(f"Node {new_node} is not solvable. It has {len(new_node.inversions)} inversions.")
+                continue
+
+            # create a new BoardNode and append
+            children.append(new_node)
+
+        return children
 
     def tolist(self):
         return self.state.flatten()
