@@ -100,15 +100,28 @@ class BoardNode:
                         inversions.append((first, second))
             return inversions
 
-    def flatten(self):
+    def flatten(self, include_empty = False):
         """
         Flattens the game board into a 1D array, removing the empty space.
 
+        Args:
+            include_empty (bool): If False, returns the board without the empty slot.
         Returns:
             list: 1D array of flattened board.
         """
         flat = self.state.flatten()
+        if include_empty:
+            return flat
         return [i for i in flat if i != '_']
+
+    def hashable(self):
+        """
+        Returns a hashable version of this objects board state.
+
+        It does this by flattening the board, and converting it to
+        a string such as '14327_568'
+        """
+        return "".join(self.flatten(include_empty=True))
 
     def move_result(self, move: Action):
             """
