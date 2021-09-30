@@ -10,12 +10,12 @@ import algorithms.hstar as hstar
 class Algorithms:
 
     @staticmethod
-    def BFS(root):
+    def bfs(root):
         print("Using BFS.")
         return bfs.search(root)
 
     @staticmethod
-    def IDS(root):
+    def ids(root):
         print("Using IDS.")
         return ids.search(root)
 
@@ -93,7 +93,9 @@ def main():
     finish = alg(board)
     if finish:
         print("Found goal.")
-        print(f"Path: \n{np.array(finish.path())}")
+        path = np.array(finish.path())
+        print(f"Path: \n{path}")
+        print(f"Path Length: \n{len(path)}")
     print(f"Execution time: {time.time()-start} seconds.")
 
 
