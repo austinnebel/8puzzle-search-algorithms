@@ -1,7 +1,7 @@
 from collections import deque
-import numpy as np
-import time
 from puzzle import BoardNode
+
+
 
 def search(root_node : BoardNode):
     """[Figure 3.11]
@@ -9,35 +9,27 @@ def search(root_node : BoardNode):
     single line as below:
     return graph_search(problem, FIFOQueue())
     """
-    start = time.time()
-
     node = root_node
-    if root_node.solved:
+    if node.solved:
         return node
 
-    # who is waiting for a visit
-    visit_queue = deque([node])
-    # who has been visited already
-    visited = deque([node])
-    while visit_queue:
-        node = visit_queue.popleft()
+    fringe = deque([node])
+    visited = set([node.hashable()])
 
+    while fringe:
+
+        node = fringe.popleft()
         children = node.expand()
-        visited.append(node)
+        print(node)
+
         for child in children:
 
-            if child == child.parent:
-                continue
+            if child.solved:
+                return child
 
-            if child not in visited and not child in visit_queue:
-                    if child.solved:
-                        return child
+            child_hashable = child.hashable()
+            if not child_hashable in visited and not child_hashable in fringe:
+                fringe.append(child)
+                visited.add(child_hashable)
 
-                    visit_queue.append(child)
-
-            if time.time()-start > 15*60:
-                print(f"Timed out after 15 minutes.")
-                return None
-
-    print(f"Not found after {time.time()-start} seconds.")
     return None
