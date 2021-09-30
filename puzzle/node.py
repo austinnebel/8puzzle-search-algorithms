@@ -201,7 +201,7 @@ class BoardNode:
         return f"<Node {self.tolist()}>"
 
     def __lt__(self, node):
-        return self.state < node.state
+        return self.path_cost < node.path_cost
 
     def __eq__(self, other):
         return isinstance(other, BoardNode) and np.array_equal(self.state, other.state)

@@ -1,5 +1,6 @@
 from enum import Enum
 import numpy as np
+from .node import BoardNode
 
 class Action(Enum):
     L = 0
@@ -27,9 +28,9 @@ class Puzzle:
         board[2] = plist[6:]
 
         print(f"Initialized board:\n{board}")
-        print(f"Starting location: {Puzzle.pos_str(board)}")
+        print(f"Starting location: {Puzzle.pos_str(board)}\n\n")
 
-        return board
+        return BoardNode(board)
 
     @staticmethod
     def get_inversions(board):

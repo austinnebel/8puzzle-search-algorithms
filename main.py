@@ -1,27 +1,53 @@
 import time
-from puzzle.node import BoardNode
 import sys
 import numpy as np
 
-from puzzle import Puzzle
+from puzzle.node import BoardNode
+import algorithms.bfs as bfs
+import algorithms.ids as ids
+import algorithms.hstar as hstar
 
 class Algorithms:
 
     @staticmethod
     def BFS(root):
+        print("Using BFS.")
         return bfs.search(root)
 
-    def IDS(self):
-        pass
+    @staticmethod
+    def IDS(root):
+        print("Using IDS.")
+        return ids.search(root)
 
-    def h1(self):
-        pass
+    @staticmethod
+    def h1(root):
+        print("Using A* with misplaced title heuristic.")
+        # h function is the count of all tiles not in the correct location
+        return hstar.search(root, lambda n: (n.state != n.GOAL).sum())
 
-    def h2(self):
-        pass
+    @staticmethod
+    def h2(root):
+        print("Using A* with Manhattan distance heuristic.")
 
-    def h3(self):
-        pass
+        # h function is the sum of the distance of each tile from its goal position
+        def distance(node):
+            total = 0
+            for row in range(3):
+                for col in range(3):
+                    cur_point = np.array([row, col])
+                    goal_point = np.where(node.state[(row, col)] == BoardNode.GOAL)
+                    dist = np.sum(np.abs(cur_point - np.array(list(goal_point)).flatten()))
+                    #print(np.sum(np.abs(cur_point - np.array(list(goal_point)).flatten())))
+                    total += dist
+
+            return total
+
+        return hstar.search(root, distance)
+
+    @staticmethod
+    def h3(root):
+        print("Using A* with one more heuristic.")
+        return hstar.search(root)
 
 def initialize(state_file):
 
@@ -36,7 +62,6 @@ def initialize(state_file):
     board[2] = plist[6:]
 
     print(f"Initialized board:\n{board}")
-    print(f"Starting location: {Puzzle.pos_str(board)}\n\n")
 
     """board = np.array([['1', '2', '3'],
                      ['4', '6', '8'],
@@ -53,7 +78,7 @@ def main():
         exit(1)
 
     file = args[1]
-    alg_name = args[2]
+    alg_name = args[2].lower()
 
     try:
         alg = getattr(Algorithms, alg_name)
@@ -73,5 +98,5 @@ def main():
 
 
 if __name__ == "__main__":
-    import algorithms.bfs as bfs
+
     main()
