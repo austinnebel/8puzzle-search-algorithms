@@ -82,32 +82,36 @@ def memoize(fn, slot=None, maxsize=32):
     return memoized_fn
 
 def best_first_graph_search(root_node : BoardNode, cost_function, display=False):
-    """Search the nodes with the lowest f scores first.
+    """
+    Search the nodes with the lowest f scores first.
+
     You specify the function f(node) that you want to minimize; for example,
     if f is a heuristic estimate to the goal, then we have greedy best
     first search; if f is node.depth then we have breadth-first search.
+
     There is a subtlety: the line "f = memoize(f, 'f')" means that the f
     values will be cached on the nodes as they are computed. So after doing
-    a best first search you can examine the f values of the path returned."""
+    a best first search you can examine the f values of the path returned.
+    """
 
     cost_function = memoize(cost_function, 'f')
     visit_queue = PriorityQueue('min', cost_function)
 
     node = root_node
     visit_queue.append(node)
-    visisted = deque([node])
+    visited = deque([node.hashable()])
 
     while visit_queue:
         node = visit_queue.pop()
         print(node)
         if node.solved:
             if display:
-                print(len(visisted), "paths have been expanded and", len(visit_queue), "paths remain in the visit queue")
+                print(len(visited), "paths have been expanded and", len(visit_queue), "paths remain in the visit queue")
             return node
 
-        visisted.append(node)
+        visited.append(node.hashable())
         for child in node.expand():
-            if not child in visisted and not child in visit_queue:
+            if not child.hashable() in visited and not child in visit_queue:
                 visit_queue.append(child)
             elif child in visit_queue:
                 if cost_function(child) < visit_queue[child]:
