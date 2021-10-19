@@ -1,5 +1,7 @@
+import os
 import time
 import sys
+import statistics
 import numpy as np
 
 from puzzle.node import BoardNode
@@ -29,7 +31,7 @@ class Algorithms:
     def h2(root):
         print("Using A* with Manhattan distance heuristic.")
 
-        # h function is the sum of the distance of each tile from its goal position
+        # h function is the sum of the tile distance of each tile from its goal position
         def distance(node):
             total = 0
             for row in range(3):
@@ -46,8 +48,16 @@ class Algorithms:
 
     @staticmethod
     def h3(root):
-        print("Using A* with one more heuristic.")
-        return hstar.search(root)
+        print("Using A* with Euclidian distance heuristic.")
+
+        def subtract_boards(node):
+            node_int = np.char.replace(node.state, '_', '9').astype(int)
+            goal_int = np.char.replace(node.GOAL, '_', '9').astype(int)
+            sub = np.linalg.norm(goal_int - node_int)
+            return sub
+
+        # h function is the sum of the  distance of each tile from its goal position
+        return hstar.search(root, subtract_boards)
 
 def initialize(state_file):
 
@@ -74,7 +84,7 @@ def main():
     args = sys.argv
 
     if len(args) != 3:
-        print("ERROR: Not enough arguments. Usage: python main.py [file path] [algorithm]")
+        print("ERROR: Not enough arguments. Usage: python main.py [file path OR folder] [algorithm]")
         exit(1)
 
     file = args[1]
@@ -87,18 +97,44 @@ def main():
         print(f"Algorithm '{alg_name}' is not valid. Available algorithms: {available_algs}")
         exit(2)
 
+    if os.path.isdir(file):
+        print(f"Processing folder '{file}' with algorithm '{alg_name}'")
+        results = []
+        visit_counts = []
+        times = []
+        for f in os.listdir(file):
+            print(f"Processing file '{f}'")
+            result, visit_count, time = start(os.path.join(file, f), alg)
+            results.append(result)
+            times.append(time)
+            visit_counts.append(visit_count)
+        print("----------------------------------------------------")
+        print(f"Average run time: {statistics.mean(times)}")
+        print(f"Average explored nodes: {statistics.mean(visit_counts)}")
+        return
+
+    start(file, alg)
+
+def start(file, algorithm):
+
     board = initialize(file)
 
     start = time.time()
-    finish = alg(board)
-    if finish:
-        print("Found goal.")
-        path = np.array(finish.path())
-        print(f"Path: \n{path}")
-        print(f"Path Length: \n{len(path)}")
-    print(f"Execution time: {time.time()-start} seconds.")
+    result, visit_count = algorithm(board)
+    if result:
+        print(f"Found goal  : {result}.")
+        path = np.array(result.path())
+        #print(f"Path: \n{path}")
+        print(f"Path Length : {len(path)}")
+        print(f"Moves       : {'-'.join([n.action.name for n in path[1:]])}")
+    else:
+        print("Goal not found.")
+
+    exec_time = time.time() - start
+    print(f"Execution time: {exec_time} seconds.\n")
+
+    return result, visit_count, exec_time
 
 
 if __name__ == "__main__":
-
     main()

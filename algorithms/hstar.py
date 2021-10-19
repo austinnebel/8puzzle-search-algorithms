@@ -1,8 +1,7 @@
-from collections import deque
-import heapq
 import functools
-from puzzle import BoardNode
-
+import heapq
+import time
+from collections import deque
 
 class PriorityQueue:
     """A Queue in which the minimum (or maximum) element (as determined by f and
@@ -81,7 +80,7 @@ def memoize(fn, slot=None, maxsize=32):
 
     return memoized_fn
 
-def best_first_graph_search(root_node : BoardNode, cost_function, display=False):
+def best_first_graph_search(root_node, cost_function):
     """
     Search the nodes with the lowest f scores first.
 
@@ -99,27 +98,38 @@ def best_first_graph_search(root_node : BoardNode, cost_function, display=False)
 
     node = root_node
     visit_queue.append(node)
+    created_count = 1
+    visit_count = 0
     visited = deque([node.hashable()])
 
+    s = time.time()
     while visit_queue:
         node = visit_queue.pop()
-        print(node)
+        visit_count += 1
+        #print(node)
         if node.solved:
-            if display:
-                print(len(visited), "paths have been expanded and", len(visit_queue), "paths remain in the visit queue")
-            return node
+            print(f"A* visited nodes: Created: {created_count}  Visited: {visit_count}")
+            return node, visit_count
+
+        if time.time() - s > 15*60:
+            print(f"ERROR: Timed out after {(time.time() - s)/60} minutes.")
+            print(f"A* nodes: Created: {created_count} Visited: {visit_count}")
+            exit(3)
 
         visited.append(node.hashable())
         for child in node.expand():
             if not child.hashable() in visited and not child in visit_queue:
                 visit_queue.append(child)
+                created_count += 1
             elif child in visit_queue:
                 if cost_function(child) < visit_queue[child]:
                     del visit_queue[child]
                     visit_queue.append(child)
-    return None
+                    created_count += 1
+    print(f"A* visited nodes: Created: {created_count}  Visited: {visit_count}")
+    return None, visit_count
 
-def search(problem, h, display=False):
+def search(problem, h):
     """A* search is best-first graph search with f(n) = g(n)+h(n)."""
     h = memoize(h, 'h')
-    return best_first_graph_search(problem, lambda n: n.path_cost + h(n), display)
+    return best_first_graph_search(problem, lambda n: n.path_cost + h(n))

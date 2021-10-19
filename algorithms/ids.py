@@ -1,30 +1,50 @@
+import time
 import sys
-from puzzle import BoardNode
+from collections import deque
 
-def depth_limited_search(root_node : BoardNode, limit=50):
-    """[Figure 3.17]"""
+visit_count = 0
+created_count = 1
+s = 0
+def depth_limited_search(root_node, depth):
+    fringe = deque([root_node]) # LIFO
+    global visit_count
+    global created_count
+    global s
 
-    def recursive_dls(node, limit):
+    result = None
+    while fringe:
+        node = fringe.pop()
+        visit_count += 1
         if node.solved:
             return node
-        elif limit == 0:
-            return 'cutoff'
-        else:
-            cutoff_occurred = False
+        if time.time() - s > 15*60:
+            print(f"ERROR: Timed out after {(time.time() - s)/60} minutes.")
+            exit(3)
+
+        if node.depth >= depth:
+            result =  "cutoff"
+        elif not node.hashable() in [n.hashable() for n in node.path()[:-1]]:
             for child in node.expand():
-                result = recursive_dls(child, limit - 1)
-                if result == 'cutoff':
-                    cutoff_occurred = True
-                elif result is not None:
-                    return result
-            return 'cutoff' if cutoff_occurred else None
+                if node.parent is not None and child.hashable() == node.parent.hashable():
+                    continue
+                fringe.append(child)
+                created_count += 1
 
-    # Body of depth_limited_search:
-    return recursive_dls(root_node, limit)
+    return result
 
-def search(problem):
-    """Iterative deepening DFS"""
+def search(root):
+    global visit_count
+    global created_count
+    global s
+    s = time.time()
+
+    visit_count = 0
+    created_count = 1
     for depth in range(sys.maxsize):
-        result = depth_limited_search(problem, depth)
-        if result != 'cutoff':
-            return result
+        result = depth_limited_search(root, depth)
+        if result != "cutoff":
+            print(f"IDS nodes: Created: {created_count} Visited: {visit_count}")
+            return result, visit_count
+        depth *=2
+    print(f"IDS nodes: Created: {created_count} Visited: {visit_count}")
+    return result, visit_count
